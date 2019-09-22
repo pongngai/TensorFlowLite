@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_CAMERA_REQUEST_CODE = 200;
     private static final int GALLERY_REQUEST_CODE = 0;
     private static final int CAMERA_REQUEST_CODE = 1;
-    private Handler aHandler = new Handler();
+    private Handler handler = new Handler();
     private Executor executor = Executors.newSingleThreadExecutor();
     private Button btn_captureImage;
     private Button btn_gallery;
@@ -54,20 +54,20 @@ public class MainActivity extends AppCompatActivity {
         btn_captureImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                initTensorFlowAndLoadModel();
                 Intent cameraView = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                 startActivityForResult(cameraView, CAMERA_REQUEST_CODE);
             }
         });
         btn_gallery.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v){
+                initTensorFlowAndLoadModel();
                 Intent galleryView = new Intent(Intent.ACTION_GET_CONTENT);
                 galleryView.setType("image/*");
                 startActivityForResult(Intent.createChooser(galleryView
                         , "Select photo from"),GALLERY_REQUEST_CODE);
             }
         });
-        initTensorFlowAndLoadModel();
-        initTensorFlowAndLoadModel2();
     }
 
     private boolean checkPermission(){
@@ -89,21 +89,21 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CAMERA_REQUEST_CODE && resultCode == RESULT_OK) {
-            Bundle extras = data.getExtras();
-            Bitmap imageBitmapCamera = (Bitmap) extras.get("data");
-            imageBitmapCamera = Bitmap.createScaledBitmap(imageBitmapCamera, INPUT_SIZE, INPUT_SIZE, false);
-            imageView1.setImageBitmap(imageBitmapCamera);
-            final List<Classifier.Recognition> resultsCamera = classifier.recognizeImage(imageBitmapCamera);
-            textViewResult1.setText(resultsCamera.toString());
-        }else if(requestCode == GALLERY_REQUEST_CODE && resultCode == RESULT_OK) {
-            Bundle extras = data.getExtras();
-            Bitmap imageBitmapGallery = (Bitmap) extras.get("data");
-            imageBitmapGallery = Bitmap.createScaledBitmap(imageBitmapGallery, INPUT_SIZE, INPUT_SIZE, false);
-            imageView1.setImageBitmap(imageBitmapGallery);
-            final List<Classifier.Recognition> resultsGallery = classifier.recognizeImage(imageBitmapGallery);
-            textViewResult1.setText(resultsGallery.toString());
+            if(classifier!=null) {
+                Bundle extras = data.getExtras();
+                Bitmap imageBitmapCamera = (Bitmap) extras.get("data");
+                imageBitmapCamera = Bitmap.createScaledBitmap(imageBitmapCamera, INPUT_SIZE, INPUT_SIZE, false);
+                imageView1.setImageBitmap(imageBitmapCamera);
+                final List<Classifier.Recognition> resultsCamera = classifier.recognizeImage(imageBitmapCamera);
+                textViewResult1.setText(resultsCamera.toString());
+                executor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        classifier.close();
+                    }
+                });
+            }
         }
-
     }
 
     private void initTensorFlowAndLoadModel() {
@@ -117,47 +117,11 @@ public class MainActivity extends AppCompatActivity {
                             LABEL_PATH,
                             INPUT_SIZE,
                             QUANT);
-                    makeButtonCameraVisible();
+                    //makeButtonCameraVisible();
                 } catch (final Exception e) {
                     throw new RuntimeException("Error initializing TensorFlow!", e);
                 }
             }
         });
     }
-    private void initTensorFlowAndLoadModel2() {
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    classifier = TensorFlowLite.create(
-                            getAssets(),
-                            MODEL_PATH,
-                            LABEL_PATH,
-                            INPUT_SIZE,
-                            QUANT);
-                    makeButtonGalleryVisible();
-                } catch (final Exception e) {
-                    throw new RuntimeException("Error initializing TensorFlow!", e);
-                }
-            }
-        });
-    }
-    private void makeButtonCameraVisible() {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                btn_captureImage.setVisibility(View.VISIBLE);
-            }
-        });
-    }
-
-    private void makeButtonGalleryVisible() {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                btn_gallery.setVisibility(View.VISIBLE);
-            }
-        });
-    }
-
 }
