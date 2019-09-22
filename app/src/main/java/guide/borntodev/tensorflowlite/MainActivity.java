@@ -14,7 +14,9 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.os.Handler;
+import android.net.Uri;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -62,7 +64,7 @@ public class MainActivity extends AppCompatActivity {
         btn_gallery.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v){
                 initTensorFlowAndLoadModel();
-                Intent galleryView = new Intent(Intent.ACTION_GET_CONTENT);
+                Intent galleryView = new Intent(Intent.ACTION_PICK);
                 galleryView.setType("image/*");
                 startActivityForResult(Intent.createChooser(galleryView
                         , "Select photo from"),GALLERY_REQUEST_CODE);
@@ -102,6 +104,18 @@ public class MainActivity extends AppCompatActivity {
                         classifier.close();
                     }
                 });
+            }
+        }
+        else if(requestCode == GALLERY_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
+            Uri pickedImage = data.getData();
+            try {
+                Bitmap imageBitmapGallery = MediaStore.Images.Media.getBitmap(getContentResolver(), pickedImage);
+                imageBitmapGallery = Bitmap.createScaledBitmap(imageBitmapGallery,INPUT_SIZE,INPUT_SIZE,false);
+                imageView1.setImageBitmap(imageBitmapGallery);
+                final List<Classifier.Recognition> resultsGallery = classifier.recognizeImage(imageBitmapGallery);
+                textViewResult1.setText(resultsGallery.toString());
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
