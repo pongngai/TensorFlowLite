@@ -90,6 +90,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        /**
+         * return list of classifier
+         * name resultsCamera and resultGallery
+         */
         if (requestCode == CAMERA_REQUEST_CODE && resultCode == RESULT_OK) {
             if(classifier!=null) {
                 Bundle extras = data.getExtras();
@@ -107,15 +111,23 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         else if(requestCode == GALLERY_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
-            Uri pickedImage = data.getData();
-            try {
-                Bitmap imageBitmapGallery = MediaStore.Images.Media.getBitmap(getContentResolver(), pickedImage);
-                imageBitmapGallery = Bitmap.createScaledBitmap(imageBitmapGallery,INPUT_SIZE,INPUT_SIZE,false);
-                imageView1.setImageBitmap(imageBitmapGallery);
-                final List<Classifier.Recognition> resultsGallery = classifier.recognizeImage(imageBitmapGallery);
-                textViewResult1.setText(resultsGallery.toString());
-            } catch (IOException e) {
-                e.printStackTrace();
+            if (classifier != null) {
+                Uri pickedImage = data.getData();
+                try {
+                    Bitmap imageBitmapGallery = MediaStore.Images.Media.getBitmap(getContentResolver(), pickedImage);
+                    imageBitmapGallery = Bitmap.createScaledBitmap(imageBitmapGallery, INPUT_SIZE, INPUT_SIZE, false);
+                    imageView1.setImageBitmap(imageBitmapGallery);
+                    final List<Classifier.Recognition> resultsGallery = classifier.recognizeImage(imageBitmapGallery);
+                    textViewResult1.setText(resultsGallery.toString());
+                    executor.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            classifier.close();
+                        }
+                    });
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
