@@ -15,7 +15,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.os.Handler;
 import android.net.Uri;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -25,9 +24,6 @@ import java.util.concurrent.Executors;
 public class MainActivity extends AppCompatActivity {
 
     private TextView mTextMessage;
-    private static final String MODEL_PATH = "model3_quant_false.tflite";
-    private static final boolean QUANT = false;
-    private static final String LABEL_PATH = "labels.txt";
     private static final int INPUT_SIZE = 224;
     private static final int PERMISSION_CAMERA_REQUEST_CODE = 200;
     private static final int GALLERY_REQUEST_CODE = 0;
@@ -36,9 +32,10 @@ public class MainActivity extends AppCompatActivity {
     private Executor executor = Executors.newSingleThreadExecutor();
     private Button btn_captureImage;
     private Button btn_gallery;
+    private Button button_result;
     private ImageView imageView1;
     private TextView textViewResult1;
-    private Classifier classifier;
+
 
 
     @Override
@@ -49,6 +46,8 @@ public class MainActivity extends AppCompatActivity {
         btn_captureImage =(Button)findViewById(R.id.btn_captureImage);
         btn_gallery = (Button)findViewById(R.id.btn_gallery);
         textViewResult1 = (TextView)findViewById(R.id.textViewResult1);
+
+
         if(checkPermission() == false){
             verifyPermission();
         }
@@ -56,14 +55,15 @@ public class MainActivity extends AppCompatActivity {
         btn_captureImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                initTensorFlowAndLoadModel();
+
                 Intent cameraView = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                 startActivityForResult(cameraView, CAMERA_REQUEST_CODE);
+
             }
         });
         btn_gallery.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v){
-                initTensorFlowAndLoadModel();
+
                 Intent galleryView = new Intent(Intent.ACTION_PICK);
                 galleryView.setType("image/*");
                 startActivityForResult(Intent.createChooser(galleryView
@@ -94,60 +94,36 @@ public class MainActivity extends AppCompatActivity {
          * return list of classifier
          * name resultsCamera and resultGallery
          */
+
         if (requestCode == CAMERA_REQUEST_CODE && resultCode == RESULT_OK) {
-            if(classifier!=null) {
+
                 Bundle extras = data.getExtras();
                 Bitmap imageBitmapCamera = (Bitmap) extras.get("data");
                 imageBitmapCamera = Bitmap.createScaledBitmap(imageBitmapCamera, INPUT_SIZE, INPUT_SIZE, false);
-                imageView1.setImageBitmap(imageBitmapCamera);
-                final List<Classifier.Recognition> resultsCamera = classifier.recognizeImage(imageBitmapCamera);
-                textViewResult1.setText(resultsCamera.toString());
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        classifier.close();
-                    }
-                });
-            }
+
+
+                Intent intent = new Intent(MainActivity.this, ShowResult.class);
+                intent.putExtra("photo", imageBitmapCamera);
+                startActivity(intent);
+
+
         }
         else if(requestCode == GALLERY_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
-            if (classifier != null) {
+
                 Uri pickedImage = data.getData();
                 try {
                     Bitmap imageBitmapGallery = MediaStore.Images.Media.getBitmap(getContentResolver(), pickedImage);
                     imageBitmapGallery = Bitmap.createScaledBitmap(imageBitmapGallery, INPUT_SIZE, INPUT_SIZE, false);
                     imageView1.setImageBitmap(imageBitmapGallery);
-                    final List<Classifier.Recognition> resultsGallery = classifier.recognizeImage(imageBitmapGallery);
-                    textViewResult1.setText(resultsGallery.toString());
-                    executor.execute(new Runnable() {
-                        @Override
-                        public void run() {
-                            classifier.close();
-                        }
-                    });
+                    Intent intent = new Intent(MainActivity.this, ShowResult.class);
+                    intent.putExtra("photo", imageBitmapGallery);
+                    startActivity(intent);
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-            }
+
         }
     }
 
-    private void initTensorFlowAndLoadModel() {
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    classifier = TensorFlowLite.create(
-                            getAssets(),
-                            MODEL_PATH,
-                            LABEL_PATH,
-                            INPUT_SIZE,
-                            QUANT);
-                    //makeButtonCameraVisible();
-                } catch (final Exception e) {
-                    throw new RuntimeException("Error initializing TensorFlow!", e);
-                }
-            }
-        });
-    }
 }
