@@ -32,12 +32,12 @@
         android:layout_height="224dp"
         android:layout_marginTop="320dp"
         android:layout_marginLeft="90dp"/>
+
     <TextView
         android:id="@+id/textViewResult1"
         android:layout_width="200dp"
         android:layout_height="200dp"
-        android:layout_marginTop="550dp"
         android:layout_marginLeft="105dp"
-        />
+        android:layout_marginTop="550dp" />
 
 </RelativeLayout>
